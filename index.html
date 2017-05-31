@@ -1,0 +1,90 @@
+<html>
+<head>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/4.9.1/d3.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/opentype.js/0.7.1/opentype.min.js"></script>
+</head>
+<body></body>
+<script>
+var font = null;
+var svg = null;
+var screen = {width: 300, height: 150, bgColor: "black"};
+var transitionDuration = 2000;
+function initSvg() {
+  var w = window,
+    d = document,
+    e = d.documentElement,
+    g = d.getElementsByTagName('body')[0],
+    x = w.innerWidth || e.clientWidth || g.clientWidth,
+    y = w.innerHeight|| e.clientHeight|| g.clientHeight;
+  var scaleAmount = x < y ? Math.floor(x / screen.width) : Math.floor(y / screen.height);
+  svg = d3.select("body")
+    .append("svg")
+    .attr("width", screen.width)
+    .attr("height", screen.height)
+    .style("background-color", screen.bgColor);
+}
+function initFont(then) {
+	opentype.load('Roboto-Black.ttf', function(err, f) {
+		if (err) {
+			alert('Font could not be loaded: ' + err);
+		} else {
+			font = f;
+      then();
+		}
+	});
+};
+function updateLines(transitionDuration) {
+  var lineAttribs = (transitionDuration ? svg.selectAll("line").transition().duration(transitionDuration) : svg.selectAll("line"))
+    .attr("x1", function (d) { return d.x1; })
+    .attr("y1", function (d) { return d.y1; })
+    .attr("x2", function (d) { return d.x2; })
+    .attr("y2", function (d) { return d.y2; })
+    .attr("stroke-width", 2)
+    .attr("stroke", 'white');
+}
+function drawLines(lines, transitionDuration) {
+  var linesSelected = svg.selectAll("line").data(lines);
+
+  linesSelected.exit().remove();
+  linesSelected.enter().append("line");
+
+  updateLines(transitionDuration);
+}
+initSvg();
+function getLines(string, count) {
+  var path = font.getPath(string, 12, 100, 62);
+  var line = {};
+  var lines = [];
+  path.commands.forEach(function(cmd) {
+			if (cmd.type === 'L' || cmd.type === 'M' || cmd.type === 'Q') {
+        if (!line.x1 || !line.y1 || cmd.type === 'M') {
+          line.x1 = Math.floor(cmd.x);
+          line.y1 = Math.floor(cmd.y);
+        } else {
+          line.x2 = Math.floor(cmd.x);
+          line.y2 = Math.floor(cmd.y);
+          lines.push(Object.assign({}, line));
+          line.x1 = line.x2;
+          line.y1 = line.y2;
+        }
+      } else if (cmd.type === 'Z') {
+        line = {};
+			}
+	});
+  for (var i = 0; i < count - path.commands.length; i++) {
+    lines.push({x1: 0, y1: 0, x2: 0, y2: 0});
+  }
+  return lines;
+}
+initFont(function() {
+  var lines =  getLines("Marushka", 0);
+  var lines2 = getLines("Marina", lines.length);
+
+  drawLines(lines, 0);
+  setTimeout(function() {
+    drawLines(lines2, 3000);
+  }, 500);
+
+});
+</script>
+</html>
